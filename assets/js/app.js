@@ -285,7 +285,7 @@
         <p class="eyebrow">EU AI Act · Quality management self-assessment</p>
         <h1>How ready is your AI quality management system?</h1>
         <p class="lead">A structured self-assessment for organisations with high-risk AI systems, built against
-          <strong>${esc(S.standardShort)}</strong>, the harmonised standard for quality management systems under the EU AI Act.
+          <strong>${esc(S.standardShort)}</strong>, the European standard for quality management systems under the EU AI Act.
           Answer for your organisation as it operates today and get a gap report you can act on and share.</p>
 
         <ul class="meta">
@@ -596,7 +596,7 @@
             answers are unverified the score is marked provisional, because an auditor would expect someone to be able to confirm
             each control and show evidence of it.</p>
           <p class="disclaimer">Indicative self-assessment only. Not a conformity assessment, certification, audit or legal advice.
-            ${esc(S.standardShort)} is a final draft; clause references may change on publication.</p>
+            Clause references follow the final draft text of the standard and should be checked against the published edition.</p>
         </section>
       </section>
     `);

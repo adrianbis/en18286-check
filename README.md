@@ -1,6 +1,6 @@
 # EN 18286 Readiness Check
 
-A self-assessment for providers of high-risk AI systems against **FprEN 18286:2026 — Artificial Intelligence: Quality Management System for EU AI Act Regulatory Purposes**. Built at [ML4Good](https://ml4good.org).
+A self-assessment for providers of high-risk AI systems against **BS EN 18286:2026 — Artificial intelligence. Quality management system for EU AI Act regulatory purposes**. Built at [ML4Good](https://ml4good.org).
 
 Plain static site: HTML, CSS and vanilla JavaScript. No build step, no framework, no backend, no cookies, no third-party requests (the font is self-hosted).
 
@@ -43,6 +43,13 @@ favicon.svg
 *Alternative:* GitHub Pages alone also works (repo *Settings → Pages → Deploy from branch → main / root*); `_headers` is ignored there.
 
 *Local preview:* open `index.html` directly, or run `python3 -m http.server` in this folder and visit `http://localhost:8000`.
+
+## Changes not showing on the live site?
+
+1. **Is Cloudflare connected to GitHub?** In Cloudflare → your project → **Deployments**, the newest entry should show your latest GitHub commit message. If it doesn't, or the project was created by drag-and-drop ("Direct Upload"), GitHub edits never reach the site — and a Direct Upload project can't be switched to Git later. Create a new Pages project with **Connect to Git** (steps above), then delete the old one.
+2. **File names are case-sensitive.** `Andres.jpeg` ≠ `andres.jpg`. The `src` in `about.html` must match the file name on GitHub exactly.
+3. **Straight quotes only.** HTML attributes need `"` — curly quotes (`“ ”`, which phones and word processors insert) break the tag.
+4. **Cache.** Hard-refresh (Ctrl/Cmd + Shift + R) or open the page in a private window.
 
 ## Editing content
 

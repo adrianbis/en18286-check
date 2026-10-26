@@ -55,8 +55,8 @@ window.ASSESSMENT = {
 
   settings: {
     siteName: "EN 18286 Readiness Check",
-    standard: "FprEN 18286:2026 — Artificial Intelligence: Quality Management System for EU AI Act Regulatory Purposes",
-    standardShort: "FprEN 18286:2026",
+    standard: "BS EN 18286:2026 — Artificial intelligence. Quality management system for EU AI Act regulatory purposes",
+    standardShort: "BS EN 18286:2026",
     showClauseRefsInResults: true,
 
     // Applicability: which answer to the role question means "deployer only".
@@ -99,7 +99,7 @@ window.ASSESSMENT = {
           id: "0.1", type: "single", role: "context",
           topic: "Role",
           text: "What is your organisation's role for the high-risk AI systems in scope?",
-          help: "FprEN 18286 is written mainly for providers. Deployers are not marked down for activities their provider controls.",
+          help: "EN 18286 is written mainly for providers. Deployers are not marked down for activities their provider controls.",
           options: [
             { id: "A", text: "Provider — we develop AI systems, or have them developed, and place them on the market or put them into service under our name.", label: "Provider" },
             { id: "B", text: "Deployer — we use AI systems supplied by another organisation and do not develop or substantially modify them.", label: "Deployer" },

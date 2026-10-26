@@ -356,11 +356,12 @@ a:hover { color: var(--blue-strong); }
 .team { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .person { padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); display: flex; flex-direction: column; }
 .avatar {
-  width: 64px; height: 64px; border-radius: 50%; object-fit: cover; margin-bottom: 16px;
+  width: 72px; height: 72px; border-radius: 50%; object-fit: cover; object-position: center 25%; margin-bottom: 16px;
   display: grid; place-items: center; font-weight: 620; font-size: 22px;
   background: var(--blue-100); color: var(--blue); border: 1px solid var(--blue-200);
 }
-.person h3 { font-size: 17px; }
+.person h3 { font-size: 17px; margin-bottom: 10px; }
+img.avatar { display: block; background: var(--surface-2); }
 .role { font-size: 14px; color: var(--blue); font-weight: 520; margin: 3px 0 12px; }
 .bio { font-size: 14.5px; color: var(--text-2); flex: 1; }
 .links { margin-top: 16px; display: flex; gap: 14px; font-size: 14px; font-weight: 520; }
