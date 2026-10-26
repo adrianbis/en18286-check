@@ -353,6 +353,7 @@ a:hover { color: var(--blue-strong); }
 .how { padding: 22px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
 .how h3 { font-size: 16px; margin-bottom: 6px; }
 .how p { font-size: 14.5px; color: var(--text-2); }
+.how-centered .how { text-align: center; display: flex; flex-direction: column; justify-content: center; padding: 26px 28px; }
 .team { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .person { padding: 24px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg); display: flex; flex-direction: column; }
 .avatar {

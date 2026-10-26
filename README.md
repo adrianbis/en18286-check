@@ -1,6 +1,6 @@
 # EN 18286 Readiness Check
 
-A self-assessment for providers of high-risk AI systems against **BS EN 18286:2026 — Artificial intelligence. Quality management system for EU AI Act regulatory purposes**. Built at [ML4Good](https://ml4good.org).
+A self-assessment for providers of high-risk AI systems against **BS EN 18286:2026 — Artificial intelligence. Quality management system for EU AI Act regulatory purposes**.
 
 Plain static site: HTML, CSS and vanilla JavaScript. No build step, no framework, no backend, no cookies, no third-party requests (the font is self-hosted).
 
