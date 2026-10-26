@@ -10,7 +10,9 @@ Plain static site: HTML, CSS and vanilla JavaScript. No build step, no framework
 index.html               The assessment (intro → questions → results)
 about.html               Project, method, team bios, limitations
 assets/js/questions.js   ← ALL questions, answers, branching and scoring live here
+assets/js/safety-config.js  ← AI Safety Indicator: topics, weights, texts
 assets/js/app.js         The engine (you shouldn't need to touch it)
+assets/js/about.js       Team-photo fallback on the About page
 assets/css/styles.css    Styling; colours are variables at the top
 assets/img/              Put team photos here
 assets/fonts/            Inter (self-hosted, OFL licence)
@@ -91,6 +93,22 @@ Every scored answer maps to a 0–3 maturity scale:
 - **Key requirements** (`key: true`, currently 8.8 residual risk evaluation after validation) are flagged "Explicit requirement" in the gap list.
 
 Per area and overall the report shows a breakdown (met / partial / missing / not verified / not applicable), **requirements met**, a **maturity index** (average verified score as 0–100, areas weighted equally, not-applicable areas excluded), a maturity band (`settings.maturityBands`) and gaps with clause references (hide with `settings.showClauseRefsInResults: false`).
+
+## AI Safety Indicator
+
+A second result under the readiness results: an *indication* of how far seven AI safety topics appear to be addressed, derived from the same answers. It adds no questions and doesn't change the readiness scoring. It is an awareness tool, not an assessment, score or rating; the wording in the config follows that rule.
+
+**Everything is in `assets/js/safety-config.js`**: topics, tags and weights (with a one-line rationale per tag), level labels, all display texts, the per-question labels and sentences, and the "Not covered by this check" list. Change a weight there and the indications change; no code edits needed.
+
+How it's calculated (logic in `app.js`, section "AI Safety Indicator"):
+- Each answer → maturity 0–1 on the existing scale (absent 0, informal ⅓, partial ⅔, established 1). "Select all" options: ticked 1, not ticked 0, applicable options only.
+- Per topic: weighted maturity = Σ(weight × maturity) / Σ(weight); internal value = round(100 × (1 − weighted maturity)) → Lower (0–25), Moderate (26–50), Elevated (51–75), Strong (76–100). The internal value is never displayed or put in the page.
+- Excluded: "Not applicable", options marked N/A, and provider-only items for deployers (same rules as the readiness results). "Not sure" is excluded and listed under Unknowns.
+- Questions skipped because the respondent said no process exists count as absent, as the readiness results do.
+- "Limited information, very indicative" when a topic rests on fewer than 2 distinct questions; "No indication available" when it rests on none. Counts are distinct questions, not options.
+- The summary only names topics that stand out; ties are never broken arbitrarily.
+
+The share link carries answers only; the indicator is recomputed from them, so shared links reproduce it (including links made before the indicator existed).
 
 ## Privacy
 

@@ -580,6 +580,8 @@
         <h2 class="section-title">By area</h2>
         <div class="chapters">${R.chapters.map(chapterCard).join("")}</div>
 
+        ${safetySection(state.answers)}
+
         <details class="answers">
           <summary>Your answers</summary>
           <ol>${answersList}</ol>
@@ -751,6 +753,219 @@
   function refTag(ref) {
     if (!S.showClauseRefsInResults || !ref) return "";
     return `<span class="ref">${esc(ref.split(";")[0].trim())}</span>`;
+  }
+
+  // ---------- AI Safety Indicator -------------------------------------------
+  // Mappings, weights and texts live in assets/js/safety-config.js.
+  // Internal values are computed here only to pick a level and an order;
+  // they are never written to the page.
+  const SAFE = window.SAFETY && window.SAFETY.enabled !== false ? window.SAFETY : null;
+
+  const fill = (tpl, vals) => String(tpl).replace(/\{(\w+)\}/g, (m, k) => (vals[k] != null ? vals[k] : m));
+  const lcFirst = (s) => (s && !/^[A-Z]{2}/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s);
+  const stripDot = (s) => String(s).replace(/\.\s*$/, "");
+
+  function parseTag(key) {
+    const m = String(key).match(/^([\d.]+?)([A-Z]+)?$/);
+    if (!m) return null;
+    // "8.1" vs "8.10": prefer an exact question id
+    if (BY_ID[key]) return { qid: key, opt: null };
+    return BY_ID[m[1]] ? { qid: m[1], opt: m[2] || null } : null;
+  }
+
+  // Evidence for one tagged question within one topic.
+  // Returns { status: "excluded" | "unknown" | "evidence", items: [{ opt, weight, maturity }], inferred }
+  function safetyEvidence(q, optTags, answers) {
+    const dep = isDeployerOnly(answers);
+    if (dep && q.providerOnly) return { status: "excluded" };
+    const eff = effOptions(q, answers);
+    const applicableOpts = (tags) => tags.filter((t) => eff.some((o) => o.id === t.opt));
+
+    if (!isVisible(q, answers)) {
+      // Skipped because the chapter's entry question said "no process": count as absent.
+      const cr = chapterResult(q.chapter, answers);
+      if (!cr.branched || q.role) return { status: "excluded" };
+      const tags = q.type === "multi" ? applicableOpts(optTags) : optTags;
+      if (!tags.length) return { status: "excluded" };
+      return { status: "evidence", inferred: true, items: tags.map((t) => ({ opt: t.opt, weight: t.weight, maturity: 0 })) };
+    }
+
+    const a = getAnswer(q, answers);
+    if (q.type === "single") {
+      const o = eff.find((x) => x.id === a);
+      if (!o || o.na) return { status: "excluded" };
+      if (o.unsure) return { status: "unknown" };
+      if (typeof o.score !== "number") return { status: "excluded" };
+      return { status: "evidence", answer: o, items: optTags.map((t) => ({ opt: null, weight: t.weight, maturity: o.score / 3 })) };
+    }
+    if (!a) return { status: "excluded" };
+    const chosen = eff.filter((o) => a.sel.includes(o.id));
+    if (chosen.some((o) => o.na)) return { status: "excluded" };
+    if (chosen.some((o) => o.unsure)) return { status: "unknown" };
+    const tags = applicableOpts(optTags).filter((t) => !a.na.includes(t.opt));
+    if (!tags.length) return { status: "excluded" };
+    return { status: "evidence", items: tags.map((t) => ({ opt: t.opt, weight: t.weight, maturity: a.sel.includes(t.opt) ? 1 : 0 })) };
+  }
+
+  function safetyTopic(topic, answers) {
+    // Group the topic's tags by question
+    const byQ = {};
+    Object.keys(topic.tags || {}).forEach((key) => {
+      const p = parseTag(key);
+      const w = Number(topic.tags[key]);
+      if (!p || !(w > 0)) return;
+      (byQ[p.qid] = byQ[p.qid] || []).push({ opt: p.opt, weight: w });
+    });
+
+    let sumW = 0, sumWM = 0;
+    const lines = [], unknowns = [], qIds = new Set();
+    let inferred = 0;
+
+    Object.keys(byQ).forEach((qid) => {
+      const q = BY_ID[qid];
+      if (!q) return;
+      const ev = safetyEvidence(q, byQ[qid], answers);
+      if (ev.status === "unknown") { unknowns.push(q); return; }
+      if (ev.status !== "evidence") return;
+      qIds.add(qid);
+      if (ev.inferred) inferred++;
+      ev.items.forEach((it) => { sumW += it.weight; sumWM += it.weight * it.maturity; });
+
+      if (ev.inferred) {
+        const w = Math.max.apply(null, ev.items.map((i) => i.weight));
+        lines.push({ q, weight: w, maturity: 0, low: true, text: fill(SAFE.texts.skipped, { label: safetyLabel(q) }) });
+      } else if (q.type === "single") {
+        const m = ev.items[0].maturity;
+        lines.push({ q, weight: ev.items[0].weight, maturity: m, low: m < 0.5, text: "“" + lcFirst(stripDot(ev.answer.text)) + "”" });
+      } else {
+        const ph = (SAFE.phrases || {})[qid] || { missing: "“{option}” is not covered", has: "“{option}” is covered" };
+        ev.items.forEach((it) => {
+          const opt = q.options.find((o) => o.id === it.opt);
+          const vals = { option: opt.text, option_lc: lcFirst(opt.text) };
+          lines.push({ q, weight: it.weight, maturity: it.maturity, low: it.maturity < 0.5, text: fill(it.maturity ? ph.has : ph.missing, vals) });
+        });
+      }
+    });
+
+    const n = qIds.size;
+    const res = { topic, n, inferred, unknowns, lines, limited: n > 0 && n < (SAFE.minQuestions || 2) };
+    if (n === 0 || sumW === 0) return Object.assign(res, { level: null });
+    const value = Math.round(100 * (1 - sumWM / sumW)); // internal only
+    const level = SAFE.levels.find((l) => value <= l.max) || SAFE.levels[SAFE.levels.length - 1];
+    return Object.assign(res, { level, _v: value, _w: sumW });
+  }
+
+  function safetyLabel(q) {
+    return ((SAFE && SAFE.labels) || {})[q.id] || q.topic;
+  }
+
+  function safetyResults(answers) {
+    const list = SAFE.topics.map((t) => safetyTopic(t, answers));
+    // Strongest indication first; ties keep config order. No-indication topics last.
+    return list
+      .map((r, i) => ({ r, i }))
+      .sort((a, b) => {
+        const av = a.r.level ? a.r._v : -1, bv = b.r.level ? b.r._v : -1;
+        return bv - av || a.i - b.i;
+      })
+      .map((x) => x.r);
+  }
+
+  function safetySection(answers) {
+    if (!SAFE) return "";
+    const T = SAFE.texts;
+    const list = safetyResults(answers);
+    const ranked = list.filter((r) => r.level);
+
+    // Only name topics that genuinely stand out: ties are never broken arbitrarily.
+    let summary;
+    const nm = (r) => `<strong>${esc(r.topic.title)}</strong>`;
+    if (!ranked.length) summary = T.summaryNone;
+    else {
+      const allLower = ranked[0].level === SAFE.levels[0];
+      const top = ranked.filter((r) => r._v === ranked[0]._v);
+      let pick;
+      if (top.length === ranked.length && ranked.length > 1) pick = null;
+      else if (top.length > 3) pick = "many";
+      else if (top.length >= 2) pick = top;
+      else if (ranked.length >= 2 && (ranked.length === 2 || ranked[1]._v !== ranked[2]._v)) pick = ranked.slice(0, 2);
+      else pick = ranked.slice(0, 1);
+
+      if (!pick) summary = fill(T.summaryEven, { level: esc(ranked[0].level.label.toLowerCase()) });
+      else if (pick === "many") summary = fill(T.summaryManyTied, { level: esc(ranked[0].level.label.toLowerCase()) });
+      else if (pick.length === 1) summary = fill(allLower ? T.summaryOneLower : T.summaryOne, { 1: nm(pick[0]) });
+      else if (pick.length === 2) summary = fill(allLower ? T.summaryAllLower : T.summaryTwo, { 1: nm(pick[0]), 2: nm(pick[1]) });
+      else {
+        const list = pick.slice(0, -1).map(nm).join(", ") + " and " + nm(pick[pick.length - 1]);
+        summary = fill(allLower ? T.summaryManyLower : T.summaryMany, { list });
+      }
+    }
+
+    const segs = (lvl) => {
+      const k = lvl ? lvl.segments : 0;
+      let h = "";
+      for (let i = 1; i <= SAFE.levels.length; i++) h += `<span class="${i <= k ? "on" : ""}"></span>`;
+      return `<span class="si-bar si-l${k}" aria-hidden="true">${h}</span>`;
+    };
+
+    const cards = list.map((r) => {
+      const low = r.lines.filter((l) => l.low).sort((a, b) => b.weight - a.weight || a.maturity - b.maturity);
+      const good = r.lines.filter((l) => !l.low).sort((a, b) => b.weight - a.weight);
+      const li = (l) => `<li>${esc(fill(T.indicated, { text: l.text }))}.</li>`;
+
+      // Clauses of the weakest tagged questions
+      const refs = [];
+      low.slice().sort((a, b) => a.maturity - b.maturity || b.weight - a.weight).forEach((l) => {
+        const ref = l.q.ref ? l.q.ref.split(";")[0].trim() : "";
+        if (ref && !refs.includes(ref) && refs.length < 3) refs.push(ref);
+      });
+
+      const based = r.n === 1 ? T.basedOn.replace("{n}", "1") : fill(T.basedOn, { n: r.n });
+      const status = r.level ? esc(r.level.label) : esc(T.noIndication);
+
+      return `
+        <details class="si-topic">
+          <summary>
+            <span class="si-name">${esc(r.topic.title)}</span>
+            <span class="si-right">
+              ${segs(r.level)}
+              <span class="si-level ${r.level ? "" : "si-none"}">${status}</span>
+            </span>
+            ${r.limited ? `<span class="si-limited">${esc(T.limited)}</span>` : ""}
+          </summary>
+          <div class="si-body">
+            <div class="si-block"><h4>${esc(T.whatItIs)}</h4><p>${esc(r.topic.what)}</p></div>
+            ${r.level ? `
+            <div class="si-block"><h4>${esc(T.suggests)}</h4>
+              ${low.length ? `<ul>${low.map(li).join("")}</ul>` : `<p class="si-muted">${esc(T.suggestsEmpty)}</p>`}</div>
+            <div class="si-block"><h4>${esc(T.helps)}</h4>
+              ${good.length ? `<ul>${good.map(li).join("")}</ul>` : `<p class="si-muted">${esc(T.helpsEmpty)}</p>`}</div>` : ""}
+            ${r.unknowns.length ? `
+            <div class="si-block"><h4>${esc(T.unknowns)}</h4>
+              <ul>${r.unknowns.map((q) => `<li>${esc(safetyLabel(q))}</li>`).join("")}</ul>
+              <p class="si-muted">${esc(T.unknownsNote)}</p></div>` : ""}
+            ${refs.length ? `<div class="si-block"><h4>${esc(T.lookNext)}</h4><p>${esc(T.lookNextPrefix)} ${refs.map(esc).join(" · ")}</p></div>` : ""}
+            ${r.n ? `<p class="si-based">${esc(based)}${r.inferred ? " " + esc(fill(T.inferred, { m: r.inferred })) : ""}</p>` : ""}
+          </div>
+        </details>`;
+    }).join("");
+
+    const notCovered = (SAFE.notCovered || []).map((x) =>
+      `<li><p class="si-nc-title">${esc(x.title)}${x.ref ? ` <span class="si-nc-ref">${esc(x.ref)}</span>` : ""}</p><p>${esc(x.text)}</p></li>`
+    ).join("");
+
+    return `
+      <section class="safety" id="ai-safety-indicator" aria-labelledby="si-title">
+        <h2 class="section-title si-section-title" id="si-title">${esc(SAFE.title)}</h2>
+        <div class="si-notice" role="note">${esc(SAFE.notice)}</div>
+        <p class="si-summary">${summary}</p>
+        <div class="si-scale">
+          <span class="si-scale-cap">${esc(SAFE.scaleCaption)}</span>
+          <span class="si-scale-ends"><span>${esc(SAFE.levels[0].label.split(" ")[0])}</span>${segs(SAFE.levels[SAFE.levels.length - 1])}<span>${esc(SAFE.levels[SAFE.levels.length - 1].label.split(" ")[0])}</span></span>
+        </div>
+        <div class="si-list">${cards}</div>
+        ${notCovered ? `<div class="si-nc"><h3>${esc(T.notCoveredTitle)}</h3><ul>${notCovered}</ul></div>` : ""}
+      </section>`;
   }
 
   // ---------- Helpers -------------------------------------------------------

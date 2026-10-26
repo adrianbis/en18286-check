@@ -368,6 +368,83 @@ img.avatar { display: block; background: var(--surface-2); }
 .about-section .btn { margin-top: 22px; }
 
 /* ==========================================================================
+   AI Safety Indicator
+   ========================================================================== */
+.safety { margin-top: 8px; }
+.si-section-title { margin-top: 64px; }
+.si-notice {
+  padding: 16px 18px; border-radius: 12px; font-size: 14.5px; line-height: 1.55;
+  background: var(--blue-50); border: 1px solid var(--blue-200); border-left: 4px solid var(--blue);
+  color: var(--text); font-weight: 500;
+}
+.si-summary { margin: 20px 0 6px; color: var(--text-2); max-width: 64ch; }
+.si-scale { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 20px; margin: 18px 0 10px; font-size: 12.5px; color: var(--text-3); }
+.si-scale-ends { display: inline-flex; align-items: center; gap: 8px; }
+
+.si-bar { display: inline-flex; gap: 3px; }
+.si-bar span { width: 18px; height: 8px; border-radius: 2px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line); }
+.si-bar span.on { box-shadow: none; }
+.si-l1 span.on { background: var(--blue-200); }
+.si-l2 span.on { background: var(--blue-300); }
+.si-l3 span.on { background: var(--blue); }
+.si-l4 span.on { background: var(--blue-strong); }
+.si-scale .si-bar span.on:nth-child(1) { background: var(--blue-200); }
+.si-scale .si-bar span.on:nth-child(2) { background: var(--blue-300); }
+.si-scale .si-bar span.on:nth-child(3) { background: var(--blue); }
+.si-scale .si-bar span.on:nth-child(4) { background: var(--blue-strong); }
+
+.si-list { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--bg); }
+.si-topic + .si-topic { border-top: 1px solid var(--line); }
+.si-topic summary {
+  list-style: none; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px;
+  padding: 16px 20px; transition: background 0.12s;
+}
+.si-topic summary::-webkit-details-marker { display: none; }
+.si-topic summary:hover { background: var(--surface); }
+.si-topic summary::before {
+  content: ""; width: 7px; height: 7px; flex-shrink: 0; margin-right: 2px;
+  border-right: 1.6px solid var(--text-3); border-bottom: 1.6px solid var(--text-3);
+  transform: rotate(-45deg); transition: transform 0.15s;
+}
+.si-topic[open] summary::before { transform: rotate(45deg); }
+.si-name { font-weight: 580; flex: 1; min-width: 180px; }
+.si-right { display: inline-flex; align-items: center; gap: 12px; }
+.si-level { font-size: 14px; color: var(--text); font-weight: 520; min-width: 150px; }
+.si-none { color: var(--text-3); font-weight: 450; }
+.si-limited { flex-basis: 100%; padding-left: 21px; font-size: 12.5px; color: var(--text-3); font-style: italic; }
+.si-body { padding: 4px 20px 20px 41px; display: grid; gap: 14px; }
+.si-block h4 { margin: 0 0 4px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); }
+.si-block p, .si-block li { font-size: 14.5px; color: var(--text-2); }
+.si-block ul { margin: 0; padding-left: 18px; }
+.si-block li { margin: 3px 0; }
+.si-block li::marker { color: var(--blue-300); }
+.si-muted { color: var(--text-3) !important; }
+.si-based { font-size: 13px; color: var(--text-3); border-top: 1px solid var(--line); padding-top: 12px; }
+
+.si-nc { margin-top: 16px; padding: 18px 20px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
+.si-nc h3 { font-size: 15px; margin-bottom: 10px; }
+.si-nc ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.si-nc p { font-size: 14px; color: var(--text-2); }
+.si-nc .si-nc-title { font-weight: 580; color: var(--text); }
+.si-nc-ref { font-weight: 450; color: var(--text-3); font-size: 12.5px; margin-left: 4px; }
+
+@media (max-width: 760px) {
+  .si-topic summary { padding: 14px 16px; }
+  .si-name { min-width: 0; flex-basis: calc(100% - 30px); }
+  .si-right { padding-left: 21px; }
+  .si-level { min-width: 0; }
+  .si-body { padding: 4px 16px 18px 16px; }
+  .si-limited { padding-left: 21px; }
+}
+@media print {
+  .si-topic summary::before { display: none; }
+  .si-list { overflow: visible; border: 0; border-radius: 0; }
+  .si-topic { break-inside: auto; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 8px; }
+  .si-topic + .si-topic { border-top: 1px solid var(--line); }
+  .si-block, .si-nc li { break-inside: avoid; }
+}
+
+/* ==========================================================================
    Responsive
    ========================================================================== */
 @media (max-width: 760px) {
