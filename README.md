@@ -58,7 +58,8 @@ favicon.svg
 Everything is in `assets/js/questions.js`; a reference of every field is at the top of that file.
 
 - **Change wording:** edit the `text` of a question or option.
-- **Add a question:** copy an existing question block, give it a new unique `id`, and add the same `showIf` as its neighbours if it should be skipped when no process exists.
+- **Add a question:** copy an existing question block, give it a new unique `id`, and add the same `showIf` as its neighbours if it should be skipped when no process exists. Every question needs a `ref` (clause) or `source`; it's shown under the question as "Source: FprEN 18286:2026, § …".
+- **Free-text questions:** `type: "text" | "longtext" | "email" | "url" | "country"`, with `optional: true` to allow skipping and `personal: true` for contact details.
 - **Add a chapter:** copy a whole chapter block. The intro page, stepper and results pick it up automatically.
 - **Branching:** `showIf: { question: "5.1", not: ["B"] }` shows a question unless 5.1 was answered B; `is: ["B"]` shows it only if it was.
 - **Team bios:** edit `about.html` (marked with `EDIT` comments).
@@ -66,13 +67,19 @@ Everything is in `assets/js/questions.js`; a reference of every field is at the 
 
 **Share links store question and option `id`s.** Reordering options is safe as long as each keeps its `id`. If you change what an existing answer *means*, bump `version` in `questions.js`; older links will then show a notice.
 
+## Structure (version 3)
+
+- **Company Profile & Applicability** (unscored): company details (P01–P08, P02–P08 optional), AI activities and role (P09–P11, 0.1), EU connection (P12), the ONE AI system assessed (P13), its lifecycle stage (P13A), possible high-risk uses (P14), Article 6(3) exception (P14A), profiling (P15), existing management systems (P16).
+- **Screening result** shown after the profile, with exactly three outcomes: **A** appears applicable, **B** does not appear applicable, **C** cannot be determined. B and C continue as a voluntary / "indicative — applicability unconfirmed" assessment. Logic: `screening()` in `app.js`. Application dates (Annex III 2 Dec 2027, Annex I 2 Aug 2028, per the Digital Omnibus on AI) are in `settings.commencement` — check them before relying on them.
+- **Part A** company governance (Ch. 1–3), **Part B** company performance (Ch. 4–5), **Part C** AI system lifecycle (Ch. 6–11).
+- The original question banks are kept verbatim, only moved: Risk (ids 5.x) → Chapter 6, Testing (ids 8.x) → Chapter 7, Data (ids 7.x) → Chapter 8. New questions use the ids from the specification (1.01, 6.ADD01, 7.ADD01 …). Ids are internal; users never see them.
+- `0.2` (continuous learning, "any systems") was replaced by `7.ADD01` for the one system assessed, and the old § 8.8 coverage notice was removed.
+
 ## Applicability
 
-The assessment opens with two scope questions (`0.1` role, `0.2` continuous learning). They are never scored.
-
-- **Deployer-only respondents** (`settings.deployerOnlyAnswers`): questions flagged `providerOnly` get an automatic "Not applicable — carried out by the provider" answer, and options flagged `providerOnly` are hidden from "select all" questions. Answering N/A at an entry question (e.g. 8.1) marks the whole area not applicable. Current flags: options in 5.2, 7.2, 7.3; questions 7.4, 7.6 and 8.1 (all of Chapter 8). Review these — they're judgement calls.
+- **Deployer-only respondents** (`settings.deployerOnlyAnswers`, answer B to `0.1`): original questions flagged `providerOnly` get an automatic "Not applicable" answer, as before. New provider-only questions use `providerOnlySkip` (skipped and listed with a reason); Chapter 10 is skipped as a whole for deployers. These are judgement calls — review them.
+- **Conditional questions** (released systems, suppliers, modifications, non-compliance, continuous learning) depend on short context questions (`P13A`, `9.SUP`, `10.MOD`, `10.DEP`, `10.NC`, `4.08S`, `5.07S`, `7.ADD01`). When they don't apply they're listed in the report under "Not asked" with their `skipReason`, never as failures. Where the spec asks for it, a readiness version is shown instead (e.g. `10.06P` for pre-release systems).
 - **"Not sure" on role** is assessed as a provider (the conservative reading).
-- **Coverage notices** (`settings.coverageNotes`) flag what isn't covered yet. Currently: continuous-learning systems (§ 8.8), shown unless 0.2 = "No". When you write the § 8.8 branch, add a chapter whose questions use `showIf: { question: "0.2", not: ["B"] }` and remove the notice.
 
 ## How scoring works
 
@@ -89,7 +96,9 @@ Every scored answer maps to a 0–3 maturity scale:
 - **Select all that apply:** score = applicable required items ticked ÷ applicable required items × 3. Items are excluded from the denominator when hidden by role, or when the respondent marks them N/A (questions with `allowItemNA`: currently 7.2, 7.3, 8.4, where the standard says "as applicable"). Unticked applicable items are listed as specific gaps. If every item is marked N/A, the question counts as not applicable.
 - **"Not sure"** is excluded from the score and reported as *not verified* — not as non-compliance. If at least 25% of applicable answers are "not sure" (`settings.provisionalThreshold`), the score is labelled provisional; if none can be verified, no score is shown.
 - **"Not applicable"** is excluded from the score and listed separately.
-- **No process at an entry question** (5.1, 7.1, 8.1): detailed questions are skipped, every applicable requirement in that area counts as unmet, and the planning question (5.9, 7.9, 8.10) is reported as implementation status.
+- **No process at a gate question** (the first question of the original chapters — 5.1, 7.1, 8.1 — and 1.01, plus any question with `gate: true`, e.g. 2.04, 4.01, 4.04, 5.01, 6.ADD03, 6.ADD08, 7.ADD02, 9.05, 10.01, 10.06, 11.01, 11.11): its dependent questions are skipped, each counts as unmet, and the planning question ("Are you planning to establish …?") is reported as implementation status.
+- **Recommended ("should") and optional ("may") questions** (`norm: "recommended"` / `"optional"`: 4.09, 4.11, 6.ADD12, 9.03, 9.04, 10.15) are not scored and are listed separately, never as gaps.
+- **Readiness questions** (`role: "readiness"`) are reported as a status, not scored.
 - **Key requirements** (`key: true`, currently 8.8 residual risk evaluation after validation) are flagged "Explicit requirement" in the gap list.
 
 Per area and overall the report shows a breakdown (met / partial / missing / not verified / not applicable), **requirements met**, a **maturity index** (average verified score as 0–100, areas weighted equally, not-applicable areas excluded), a maturity band (`settings.maturityBands`) and gaps with clause references (hide with `settings.showClauseRefsInResults: false`).
@@ -112,4 +121,8 @@ The share link carries answers only; the indicator is recomputed from them, so s
 
 ## Privacy
 
-There is no server-side code. Progress is kept in the browser's local storage so people can resume; a share link encodes the answers (and optional label) inside the URL fragment (`#r=…`), which browsers don't send to the server. Anyone holding the link can view the results.
+There is no server-side code. Progress (including free-text answers, contact details and evidence notes) is kept in the browser's local storage so people can resume. A share link encodes only the multiple-choice answers and the optional label inside the URL fragment (`#r=…`), which browsers don't send to the server; it never contains free text, contact details, the AI system description or evidence notes. Sharing and JSON export each require an explicit confirmation; contact details are only included in the JSON export if the user ticks that option. Anyone holding a share link can view the results.
+
+## JSON export
+
+One record per question: `question_id`, `company_id` / `system_id`, `selected_option_ids`, `answer_text`, `status` (implemented / partial / missing / unknown / not_applicable / answered / skipped), `applicability_reason`, `source_clause`, `normative_label`, `timestamp`, `evidence_note`, plus the screening result and a per-chapter summary.
