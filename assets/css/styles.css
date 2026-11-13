@@ -597,3 +597,92 @@ select.text-input { appearance: auto; }
 }
 .how-grid.how-three { grid-template-columns: repeat(3, 1fr); }
 @media (max-width: 760px) { .how-grid.how-three { grid-template-columns: 1fr; } }
+
+/* ==========================================================================
+   Facelift (v3.1) — EU-blue frame and solid-colour panels.
+   Purely visual: overrides only, no content or layout logic changes.
+   To undo, delete everything from this comment to the end of the file.
+   ========================================================================== */
+:root {
+  --eu: #003399;            /* EU flag blue (Reflex Blue) */
+  --eu-deep: #00226b;
+  --eu-band: #2f5bbf;       /* lighter blue band next to the page */
+  --gold: #d4af37;          /* elegant gold hairline */
+  --col: 1000px;            /* width of the white page column */
+  --gutter: 28px;           /* minimum blue showing at each side */
+  --frame-bg: #e3ebf8;      /* solid panel fill */
+  --frame-line: #a9bde4;    /* panel border */
+}
+
+/* Blue surround. The gradient spans the whole page height, so the tone
+   shifts gently as you scroll. No animation or script involved. */
+body {
+  background-color: var(--eu);
+  background-image:
+    radial-gradient(1200px 700px at 0% 8%, rgba(70, 120, 220, 0.35), transparent 70%),
+    radial-gradient(1000px 800px at 100% 55%, rgba(60, 110, 210, 0.28), transparent 70%),
+    linear-gradient(180deg, #002a85 0%, var(--eu) 22%, #0d3ea6 45%, var(--eu) 66%, var(--eu-deep) 100%);
+}
+
+/* The white page column, edged with a lighter-blue band and a gold hairline. */
+.site-header, .main, .site-footer {
+  width: min(var(--col), calc(100% - 2 * var(--gutter)));
+  margin-left: auto; margin-right: auto;
+  box-shadow: -8px 0 0 var(--eu-band), 8px 0 0 var(--eu-band), -10px 0 0 var(--gold), 10px 0 0 var(--gold);
+}
+.main {
+  border-radius: 0 !important; /* the column is focused on page change; keep its corners square */
+  max-width: none;
+  background: var(--bg);
+  /* keeps the text column exactly as wide as before (872px) */
+  padding-left: max(24px, calc((min(var(--col), 100vw - 2 * var(--gutter)) - 872px) / 2));
+  padding-right: max(24px, calc((min(var(--col), 100vw - 2 * var(--gutter)) - 872px) / 2));
+}
+.site-header { background: #fff; }
+.site-footer { border-top: 1px solid var(--frame-line); }
+
+/* Solid-colour panels (intro chips, chapter list, start card, notes, about cards, bios). */
+.meta li, .start-card, .area, .how, .person, .note, .privacy-note, .si-notice, .answers {
+  background: var(--frame-bg);
+  border-color: var(--frame-line);
+  /* slightly darker secondary text so it stays readable on the blue fill */
+  --text-2: #3f4c60;
+  --text-3: #55637a;
+  --line: #c2d1ee;
+  --surface: #edf2fb;
+}
+.meta li { border-width: 1px; border-style: solid; }
+.meta-k { color: var(--eu); }
+.area-num { color: var(--eu); }
+.start-card { box-shadow: var(--shadow); }
+
+/* Dense panels keep a white body for readability, with the same blue frame and a top accent. */
+.qcard, .chapter, .summary, .si-list, .table-wrap, .dlg {
+  border-color: var(--frame-line);
+  box-shadow: inset 0 3px 0 var(--eu), var(--shadow);
+}
+
+/* Team bios: larger centred photo and name; the rest of the card as before. */
+.person .avatar {
+  width: 120px; height: 120px;
+  margin: 4px auto 18px;
+  font-size: 34px;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px var(--frame-line), 0 8px 20px -10px rgba(0, 34, 107, 0.45);
+}
+.person h3 { text-align: center; margin-bottom: 12px; }
+
+@media (max-width: 760px) {
+  :root { --gutter: 10px; }
+  .site-header, .main, .site-footer {
+    box-shadow: -4px 0 0 var(--eu-band), 4px 0 0 var(--eu-band), -6px 0 0 var(--gold), 6px 0 0 var(--gold);
+  }
+  .main { padding-left: 18px; padding-right: 18px; }
+}
+
+@media print {
+  body { background: #fff; }
+  .site-header, .main, .site-footer { width: auto; box-shadow: none; }
+  .main { padding-left: 0; padding-right: 0; }
+  .qcard, .chapter, .summary, .si-list, .table-wrap { box-shadow: none; }
+}
